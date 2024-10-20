@@ -14,15 +14,11 @@
 
 import math
 
-
 def read_data(alphabet_file, probability_file):
     """Чтение алфавита и вероятностей из файлов с отладкой"""
-
-    # Логируем названия файлов для проверки
     print(f"Чтение файла алфавита: {alphabet_file}")
     print(f"Чтение файла вероятностей: {probability_file}")
 
-    # Пытаемся прочитать файлы
     try:
         with open(alphabet_file, 'r') as f_alphabet:
             alphabet = [line.strip() for line in f_alphabet.readlines()]
@@ -87,12 +83,15 @@ def encode_symbols(alphabet, probabilities):
 
     codes = {}
     for i in range(len(alphabet)):
-        # Переводим sigma(i) в двоичную дробную часть
         fractional_part = sigma[i] - int(sigma[i])  # Извлекаем дробную часть
         binary_code = float_to_binary(fractional_part, l[i])
         codes[alphabet[i]] = binary_code
 
     return codes
+
+def decode_symbols(codes):
+    """Создание обратного словаря для декодирования"""
+    return {code: symbol for symbol, code in codes.items()}
 
 def write_codes_to_file(codes, output_file):
     """Запись кодов в файл"""
@@ -119,22 +118,78 @@ def choose_probability_file():
         print("Неправильный выбор, попробуйте снова.")
         return choose_probability_file()
 
+def read_input_file(input_file):
+    """Чтение текста для кодирования из файла"""
+    try:
+        with open(input_file, 'r') as f_input:
+            text = f_input.read().strip()
+        return text
+    except Exception as e:
+        print(f"Ошибка при чтении файла ввода: {e}")
+        raise
+
+def encode_text(text, codes):
+    """Кодирование текста на основе словаря кодов"""
+    encoded_text = ''.join(codes[char] for char in text if char in codes)
+    return encoded_text
+
+def decode_text(encoded_text, decode_codes):
+    """Декодирование текста на основе словаря кодов"""
+    decoded_text = ''
+    current_code = ''
+    for bit in encoded_text:
+        current_code += bit
+        if current_code in decode_codes:
+            decoded_text += decode_codes[current_code]
+            current_code = ''
+    return decoded_text
+
+def write_output_file(output_file, text):
+    """Запись текста в файл"""
+    with open(output_file, 'w') as f_output:
+        f_output.write(text)
 
 # Основной код программы
 if __name__ == "__main__":
-    # Чтение данных из файлов
+    # Выбор режима работы
+    mode = input("Выберите режим работы (1 - кодировать, 2 - декодировать): ")
 
     alphabet_file = 'alphabet.txt'
     probability_file, output_file = choose_probability_file()
 
-    print(f"Переданный файл алфавита: {alphabet_file}")
-    print(f"Переданный файл вероятностей: {probability_file}")
     alphabet, probabilities = read_data(alphabet_file, probability_file)
 
     # Получение кодировки символов
     codes = encode_symbols(alphabet, probabilities)
 
-    # Вывод кодировки для каждого символа в файл
-    write_codes_to_file(codes, output_file)
+    if mode == '1':  # Кодирование
+        # Чтение текста для кодирования
+        input_file = 'input.txt'
+        text = read_input_file(input_file)
 
-    print(f"Кодировка символов записана в файл {output_file}")
+        # Кодирование текста
+        encoded_text = encode_text(text, codes)
+
+        # Запись закодированного текста в файл
+        write_output_file('output.txt', encoded_text)
+
+        print(f"Кодировка символов записана в файл output.txt")
+
+    elif mode == '2':  # Декодирование
+        # Чтение закодированного текста из файла
+        input_file = 'input.txt'
+        encoded_text = read_input_file(input_file)
+
+        # Создание обратного словаря для декодирования
+        decode_codes = decode_symbols(codes)
+
+        # Декодирование текста
+        decoded_text = decode_text(encoded_text, decode_codes)
+
+        # Запись декодированного текста в файл
+        write_output_file('output.txt', decoded_text)
+
+        print(f"Декодированный текст записан в файл output.txt")
+
+    else:
+        print("Неправильный выбор режима работы. Программа завершена.")
