@@ -10,16 +10,25 @@
  code_words_p2.txt -- полученные кодовые слова для P2
  code_words_ud.txt -- полученные кодовые слова для равномерного распределения
 
-Для работы с программой сначала заполните файл input.txt последовательностью, которую нужно кодировать
-или декодировать, затем выберите режим работы и распределение. Результат работы программы записывается
-в файл output.txt.
-
 """
 
 import math
 
+from tkinter import*
+
+global_choice = None
+mode = None
+alphabet_label = None  # Переменная для хранения метки алфавита
+
+# Функция для сохранения введённого текста в файл
+def save_input_text():
+    text = input_text_area.get("1.0", "end-1c")  # Получаем текст из текстового поля
+    with open('input.txt', 'w') as f:
+        f.write(text)
+    print("Текст сохранён в файл input.txt")
+
+# Функция для чтения алфавита и вероятностей из файлов
 def read_data(alphabet_file, probability_file):
-    """Чтение алфавита и вероятностей из файлов с отладкой"""
     print(f"Чтение файла алфавита: {alphabet_file}")
     print(f"Чтение файла вероятностей: {probability_file}")
 
@@ -27,6 +36,11 @@ def read_data(alphabet_file, probability_file):
         with open(alphabet_file, 'r') as f_alphabet:
             alphabet = [line.strip() for line in f_alphabet.readlines()]
         print(f"Алфавит успешно прочитан: {alphabet}")
+
+        # Обновляем метку с алфавитом
+        if alphabet_label:  # Проверяем, инициализирована ли метка
+            alphabet_label.config(text=f"Алфавит: {', '.join(alphabet)}")
+
     except Exception as e:
         print(f"Ошибка при чтении файла алфавита: {e}")
         raise
@@ -44,23 +58,23 @@ def read_data(alphabet_file, probability_file):
 
     return alphabet, probabilities
 
+# Функция для вычисления кумулятивной вероятности q для каждого символа алфавита
 def calculate_q(probabilities):
-    """Вычисляем кумулятивную вероятность q для каждого символа"""
     q = [0]  # q(1) = 0
     for i in range(1, len(probabilities)):
         q.append(q[i - 1] + probabilities[i - 1])
     return q
 
+# Функция для вычисления значения sigma(i)
 def calculate_sigma(q, probabilities):
-    """Вычисляем значение sigma(i)"""
     sigma = []
     for i in range(len(probabilities)):
         sigma_value = q[i] + probabilities[i] / 2
         sigma.append(sigma_value)
     return sigma
 
+# Функция для вычисления значения l(i)
 def calculate_l(probabilities):
-    """Вычисляем значение l(i), округленное в большую сторону"""
     l = []
     for prob in probabilities:
         l_value = math.ceil(-math.log2(prob / 2))
@@ -79,8 +93,8 @@ def float_to_binary(fraction, bits):
             binary += '0'
     return binary
 
+# Основная функция кодирования символов
 def encode_symbols(alphabet, probabilities):
-    """Основная функция кодирования символов"""
     q = calculate_q(probabilities)
     sigma = calculate_sigma(q, probabilities)
     l = calculate_l(probabilities)
@@ -93,37 +107,43 @@ def encode_symbols(alphabet, probabilities):
 
     return codes, l
 
+# Функция создания обратного словаря для декодирования
 def decode_symbols(codes):
-    """Создание обратного словаря для декодирования"""
     return {code: symbol for symbol, code in codes.items()}
 
+# Функция для записи кодов в файл
 def write_codes_to_file(codes, output_file):
-    """Запись кодов в файл"""
+    codes_str = ""
     with open(output_file, 'w') as f_output:
         for symbol, code in codes.items():
             f_output.write(f"{symbol}: {code}\n")
+            codes_str += f"{symbol}: {code}\n"  # Составляем строку для отображения
+    return codes_str
 
+# Функция для выбора распределения
 def choose_probability_file():
-    """Функция для выбора файла с вероятностями"""
-    print("Выберите файл с вероятностями:")
-    print("1. probability1.txt")
-    print("2. probability2.txt")
-    print("3. uniform_distribution.txt")
-
-    choice = input("Ваш выбор (1/2/3): ")
-
-    if choice == '1':
+    if global_choice == 1:
         return 'probability1.txt', 'code_words_p1.txt'
-    elif choice == '2':
+    elif global_choice == 2:
         return 'probability2.txt', 'code_words_p2.txt'
-    elif choice == '3':
+    elif global_choice == 3:
         return 'uniform_distribution.txt', 'code_words_ud.txt'
-    else:
-        print("Неправильный выбор, попробуйте снова.")
-        return choose_probability_file()
 
+def set_choice(value):
+    global global_choice
+    global_choice = value
+    print(f"Выбрана вероятность: {global_choice}")
+
+    if global_choice is not None:
+        process_mode(mode)  # Здесь mode должен быть глобальным или передаваться как параметр
+
+def show_probability_buttons():
+    btn_probability1.grid(column=0, row=3)
+    btn_probability2.grid(column=1, row=3)
+    btn_probability3.grid(column=2, row=3)
+
+# Чтение текста для кодирования из файла
 def read_input_file(input_file):
-    """Чтение текста для кодирования из файла"""
     try:
         with open(input_file, 'r') as f_input:
             text = f_input.read().strip()
@@ -132,13 +152,13 @@ def read_input_file(input_file):
         print(f"Ошибка при чтении файла ввода: {e}")
         raise
 
+# Кодирование текста на основе словаря кодов
 def encode_text(text, codes):
-    """Кодирование текста на основе словаря кодов"""
     encoded_text = ''.join(codes[char] for char in text if char in codes)
     return encoded_text
 
+# Декодирование текста на основе словаря кодов
 def decode_text(encoded_text, decode_codes):
-    """Декодирование текста на основе словаря кодов"""
     decoded_text = ''
     current_code = ''
     for bit in encoded_text:
@@ -148,45 +168,40 @@ def decode_text(encoded_text, decode_codes):
             current_code = ''
     return decoded_text
 
+# Запись текста в файл
 def write_output_file(output_file, text):
-    """Запись текста в файл"""
     with open(output_file, 'w') as f_output:
         f_output.write(text)
 
+# Вычисление средней длины кодового слова
 def calculate_average_length(l, probabilities):
-    """Вычисление средней длины кодового слова"""
     average_length = sum(l[i] * probabilities[i] for i in range(len(probabilities)))
     return average_length
 
+# Вычисление энтропии H
 def calculate_entropy(probabilities):
-    """Вычисление энтропии H"""
     entropy = -sum(p * math.log2(p) for p in probabilities if p > 0)
     return entropy
 
+# Вычисление избыточности
 def calculate_redundancy(average_length, entropy):
-    """Вычисление избыточности"""
     return average_length - entropy
 
+# Вычисление неравенства Крафта
 def calculate_kraft_inequality(l):
-    """Вычисление неравенства Крафта"""
     kraft_sum = sum(2 ** (-li) for li in l)
     return kraft_sum
 
-# Основной код программы
-if __name__ == "__main__":
-    # Выбор режима работы
-    mode = input("Выберите режим работы (1 - кодировать, 2 - декодировать): ")
-
+def process_mode(mode):
     alphabet_file = 'alphabet.txt'
+    global global_choice
     probability_file, code_words_file = choose_probability_file()
 
     alphabet, probabilities = read_data(alphabet_file, probability_file)
-
     # Получение кодировки символов и значений l
     codes, l = encode_symbols(alphabet, probabilities)
-
-    # Запись кодов в файл
-    write_codes_to_file(codes, code_words_file)
+    codes_str = write_codes_to_file(codes, code_words_file)
+    codes_label.config(text=f"Кодовые слова:\n{codes_str}")  # Обновляем метку с кодовыми словами
 
     # Вычисление средней длины, энтропии и избыточности
     average_length = calculate_average_length(l, probabilities)
@@ -194,46 +209,122 @@ if __name__ == "__main__":
     redundancy = calculate_redundancy(average_length, entropy)
 
     # Вывод результатов расчетов
-    print(f"Средняя длина кодового слова: {average_length}")
-    print(f"Энтропия: {entropy}")
-    print(f"Избыточность: {redundancy}")
+    average_length_label.config(text=f"Средняя длина кодового слова: {average_length}")
+    entropy_label.config(text=f"Энтропия: {entropy}")
+    redundancy_label.config(text=f"Избыточность: {redundancy}")
 
     # Вычисление и проверка неравенства Крафта
     kraft_sum = calculate_kraft_inequality(l)
-    print(f"Сумма по неравенству Крафта: {kraft_sum}")
+    kraft_label.config(text=f"Неравенство Крафта: {kraft_sum}")
     if kraft_sum == 1:
-        print("Код является оптимальным.")
+        kraft_optimality_label.config(text="Код является оптимальным.")
     elif kraft_sum < 1:
-        print("Код не является оптимальным.")
+        kraft_optimality_label.config(text="Код не является оптимальным.")
     else:
-        print("Ошибка: Сумма неравенства Крафта больше 1.")
+        kraft_optimality_label.config(text="Ошибка: Сумма неравенства Крафта больше 1.")
 
-    if mode == '1':  # Кодирование
+    if mode == 1:  # Кодирование
         input_file = 'input.txt'
         text = read_input_file(input_file)
-
-        # Кодирование текста
         encoded_text = encode_text(text, codes)
-
-        # Запись закодированного текста в файл
         write_output_file('output.txt', encoded_text)
 
+        # Обновляем метку с закодированным текстом
+        encoded_text_label.config(text=f"Закодированный текст: {encoded_text}")
+        print(f"Кодировка символов записана в файл {code_words_file}")
         print(f"Закодированный текст записан в файл output.txt")
 
-    elif mode == '2':  # Декодирование
+
+    elif mode == 2:  # Декодирование
+
         input_file = 'input.txt'
         encoded_text = read_input_file(input_file)
-
-        # Создание обратного словаря для декодирования
         decode_codes = decode_symbols(codes)
-
-        # Декодирование текста
         decoded_text = decode_text(encoded_text, decode_codes)
-
-        # Запись декодированного текста в файл
         write_output_file('output.txt', decoded_text)
 
+        # Обновляем метку с декодированным текстом
+        decoded_text_label.config(text=f"Декодированный текст: {decoded_text}")
+        print(f"Кодировка символов записана в файл {code_words_file}")
         print(f"Декодированный текст записан в файл output.txt")
 
-    else:
-        print("Неправильный выбор режима работы. Программа завершена.")
+def clickedC():
+    global global_choice
+    global mode
+    mode = 1
+    global_choice = None  # Сброс выбора
+    show_probability_buttons()  # Показать кнопки выбора вероятности
+
+def clickedDC():
+    global global_choice
+    global mode
+    mode = 2
+    global_choice = None  # Сброс выбора
+    show_probability_buttons()  # Показать кнопки выбора вероятности
+
+# Основной код программы
+if __name__ == "__main__":
+    window = Tk()
+    window.title('Кодирование/декодирование')
+    window.geometry('800x550')
+
+    # Текстовое поле для ввода текста
+    input_text_area = Text(window, height=10, width=70)
+    input_text_area.grid(column=0, row=0, columnspan=3)
+
+    # Кнопка для сохранения текста в input.txt
+    btn_save_input = Button(window, text="Сохранить текст", command=save_input_text)
+    btn_save_input.grid(column=4, row=0, columnspan=3)
+
+    lbl = Label(window, text="Выбор режима работы:")
+    lbl.grid(column=0, row=1)
+
+    btn_encode = Button(window, text="Кодировать", command=clickedC)
+    btn_encode.grid(column=0, row=2)
+
+    btn_decode = Button(window, text="Декодировать", command=clickedDC)
+    btn_decode.grid(column=2, row=2)
+
+    # Кнопки выбора вероятности
+    btn_probability1 = Button(window, text="Распределение P1", command=lambda: set_choice(1))
+    btn_probability2 = Button(window, text="Распределение P1", command=lambda: set_choice(2))
+    btn_probability3 = Button(window, text="Равномерное распределение", command=lambda: set_choice(3))
+
+    # Изначально скрываем кнопки
+    btn_probability1.grid_forget()
+    btn_probability2.grid_forget()
+    btn_probability3.grid_forget()
+
+    # Метка для отображения алфавита
+    alphabet_label = Label(window, text="Алфавит: ")
+    alphabet_label.grid(column=0, row=4, columnspan=3)  # Размещаем метку ниже кнопок
+
+    # Метки для отображения результатов
+    kraft_label = Label(window, text="Неравенство Крафта: ")
+    kraft_label.grid(column=0, row=6, columnspan=3)
+
+    kraft_optimality_label = Label(window, text="")
+    kraft_optimality_label.grid(column=0, row=7, columnspan=3)
+
+    entropy_label = Label(window, text="Энтропия: ")
+    entropy_label.grid(column=0, row=8, columnspan=3)
+
+    redundancy_label = Label(window, text="Избыточность: ")
+    redundancy_label.grid(column=0, row=9, columnspan=3)
+
+    average_length_label = Label(window, text="Средняя длина кодового слова: ")
+    average_length_label.grid(column=0, row=10, columnspan=3)
+
+    # Метка для отображения кодовых слов
+    codes_label = Label(window, text="")
+    codes_label.grid(column=0, row=11, columnspan=3)
+
+    # Метка для отображения закодированного текста
+    encoded_text_label = Label(window, text="")
+    encoded_text_label.grid(column=0, row=12, columnspan=3)
+
+    # Метка для отображения декодированного текста
+    decoded_text_label = Label(window, text="")
+    decoded_text_label.grid(column=0, row=13, columnspan=3)
+
+    window.mainloop()
