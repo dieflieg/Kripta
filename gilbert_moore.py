@@ -10,6 +10,10 @@
  code_words_p2.txt -- полученные кодовые слова для P2
  code_words_ud.txt -- полученные кодовые слова для равномерного распределения
 
+Для работы с программой сначала заполните файл input.txt последовательностью, которую нужно кодировать
+или декодировать, затем выберите режим работы и распределение. Результат работы программы записывается
+в файл output.txt.
+
 """
 
 import math
@@ -87,7 +91,7 @@ def encode_symbols(alphabet, probabilities):
         binary_code = float_to_binary(fractional_part, l[i])
         codes[alphabet[i]] = binary_code
 
-    return codes
+    return codes, l
 
 def decode_symbols(codes):
     """Создание обратного словаря для декодирования"""
@@ -149,6 +153,25 @@ def write_output_file(output_file, text):
     with open(output_file, 'w') as f_output:
         f_output.write(text)
 
+def calculate_average_length(l, probabilities):
+    """Вычисление средней длины кодового слова"""
+    average_length = sum(l[i] * probabilities[i] for i in range(len(probabilities)))
+    return average_length
+
+def calculate_entropy(probabilities):
+    """Вычисление энтропии H"""
+    entropy = -sum(p * math.log2(p) for p in probabilities if p > 0)
+    return entropy
+
+def calculate_redundancy(average_length, entropy):
+    """Вычисление избыточности"""
+    return average_length - entropy
+
+def calculate_kraft_inequality(l):
+    """Вычисление неравенства Крафта"""
+    kraft_sum = sum(2 ** (-li) for li in l)
+    return kraft_sum
+
 # Основной код программы
 if __name__ == "__main__":
     # Выбор режима работы
@@ -159,14 +182,33 @@ if __name__ == "__main__":
 
     alphabet, probabilities = read_data(alphabet_file, probability_file)
 
-    # Получение кодировки символов
-    codes = encode_symbols(alphabet, probabilities)
+    # Получение кодировки символов и значений l
+    codes, l = encode_symbols(alphabet, probabilities)
 
     # Запись кодов в файл
     write_codes_to_file(codes, code_words_file)
 
+    # Вычисление средней длины, энтропии и избыточности
+    average_length = calculate_average_length(l, probabilities)
+    entropy = calculate_entropy(probabilities)
+    redundancy = calculate_redundancy(average_length, entropy)
+
+    # Вывод результатов расчетов
+    print(f"Средняя длина кодового слова: {average_length}")
+    print(f"Энтропия: {entropy}")
+    print(f"Избыточность: {redundancy}")
+
+    # Вычисление и проверка неравенства Крафта
+    kraft_sum = calculate_kraft_inequality(l)
+    print(f"Сумма по неравенству Крафта: {kraft_sum}")
+    if kraft_sum == 1:
+        print("Код является оптимальным.")
+    elif kraft_sum < 1:
+        print("Код не является оптимальным.")
+    else:
+        print("Ошибка: Сумма неравенства Крафта больше 1.")
+
     if mode == '1':  # Кодирование
-        # Чтение текста для кодирования
         input_file = 'input.txt'
         text = read_input_file(input_file)
 
@@ -176,11 +218,9 @@ if __name__ == "__main__":
         # Запись закодированного текста в файл
         write_output_file('output.txt', encoded_text)
 
-        print(f"Кодировка символов записана в файл {code_words_file}")
         print(f"Закодированный текст записан в файл output.txt")
 
     elif mode == '2':  # Декодирование
-        # Чтение закодированного текста из файла
         input_file = 'input.txt'
         encoded_text = read_input_file(input_file)
 
@@ -193,7 +233,6 @@ if __name__ == "__main__":
         # Запись декодированного текста в файл
         write_output_file('output.txt', decoded_text)
 
-        print(f"Кодировка символов записана в файл {code_words_file}")
         print(f"Декодированный текст записан в файл output.txt")
 
     else:
