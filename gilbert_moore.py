@@ -155,12 +155,15 @@ if __name__ == "__main__":
     mode = input("Выберите режим работы (1 - кодировать, 2 - декодировать): ")
 
     alphabet_file = 'alphabet.txt'
-    probability_file, output_file = choose_probability_file()
+    probability_file, code_words_file = choose_probability_file()
 
     alphabet, probabilities = read_data(alphabet_file, probability_file)
 
     # Получение кодировки символов
     codes = encode_symbols(alphabet, probabilities)
+
+    # Запись кодов в файл
+    write_codes_to_file(codes, code_words_file)
 
     if mode == '1':  # Кодирование
         # Чтение текста для кодирования
@@ -173,7 +176,8 @@ if __name__ == "__main__":
         # Запись закодированного текста в файл
         write_output_file('output.txt', encoded_text)
 
-        print(f"Кодировка символов записана в файл output.txt")
+        print(f"Кодировка символов записана в файл {code_words_file}")
+        print(f"Закодированный текст записан в файл output.txt")
 
     elif mode == '2':  # Декодирование
         # Чтение закодированного текста из файла
@@ -189,6 +193,7 @@ if __name__ == "__main__":
         # Запись декодированного текста в файл
         write_output_file('output.txt', decoded_text)
 
+        print(f"Кодировка символов записана в файл {code_words_file}")
         print(f"Декодированный текст записан в файл output.txt")
 
     else:
