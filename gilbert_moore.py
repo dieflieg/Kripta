@@ -27,8 +27,8 @@ def save_input_text():
         f.write(text)
     print("Текст сохранён в файл input.txt")
 
-# Функция для чтения алфавита и вероятностей из файлов
 def read_data(alphabet_file, probability_file):
+    """Чтение алфавита и вероятностей из файлов с отладкой"""
     print(f"Чтение файла алфавита: {alphabet_file}")
     print(f"Чтение файла вероятностей: {probability_file}")
 
@@ -58,23 +58,23 @@ def read_data(alphabet_file, probability_file):
 
     return alphabet, probabilities
 
-# Функция для вычисления кумулятивной вероятности q для каждого символа алфавита
 def calculate_q(probabilities):
+    """Вычисляем кумулятивную вероятность q для каждого символа"""
     q = [0]  # q(1) = 0
     for i in range(1, len(probabilities)):
         q.append(q[i - 1] + probabilities[i - 1])
     return q
 
-# Функция для вычисления значения sigma(i)
 def calculate_sigma(q, probabilities):
+    """Вычисляем значение sigma(i)"""
     sigma = []
     for i in range(len(probabilities)):
         sigma_value = q[i] + probabilities[i] / 2
         sigma.append(sigma_value)
     return sigma
 
-# Функция для вычисления значения l(i)
 def calculate_l(probabilities):
+    """Вычисляем значение l(i), округленное в большую сторону"""
     l = []
     for prob in probabilities:
         l_value = math.ceil(-math.log2(prob / 2))
@@ -93,8 +93,8 @@ def float_to_binary(fraction, bits):
             binary += '0'
     return binary
 
-# Основная функция кодирования символов
 def encode_symbols(alphabet, probabilities):
+    """Основная функция кодирования символов"""
     q = calculate_q(probabilities)
     sigma = calculate_sigma(q, probabilities)
     l = calculate_l(probabilities)
@@ -107,12 +107,12 @@ def encode_symbols(alphabet, probabilities):
 
     return codes, l
 
-# Функция создания обратного словаря для декодирования
 def decode_symbols(codes):
+    """Создание обратного словаря для декодирования"""
     return {code: symbol for symbol, code in codes.items()}
 
-# Функция для записи кодов в файл
 def write_codes_to_file(codes, output_file):
+    """Запись кодов в файл и возвращение их как строку для отображения."""
     codes_str = ""
     with open(output_file, 'w') as f_output:
         for symbol, code in codes.items():
@@ -120,7 +120,6 @@ def write_codes_to_file(codes, output_file):
             codes_str += f"{symbol}: {code}\n"  # Составляем строку для отображения
     return codes_str
 
-# Функция для выбора распределения
 def choose_probability_file():
     if global_choice == 1:
         return 'probability1.txt', 'code_words_p1.txt'
@@ -142,8 +141,8 @@ def show_probability_buttons():
     btn_probability2.grid(column=1, row=3)
     btn_probability3.grid(column=2, row=3)
 
-# Чтение текста для кодирования из файла
 def read_input_file(input_file):
+    """Чтение текста для кодирования из файла"""
     try:
         with open(input_file, 'r') as f_input:
             text = f_input.read().strip()
@@ -152,13 +151,18 @@ def read_input_file(input_file):
         print(f"Ошибка при чтении файла ввода: {e}")
         raise
 
-# Кодирование текста на основе словаря кодов
-def encode_text(text, codes):
+def encode_text(text, codes, alphabet):
+    """Кодирование текста на основе словаря кодов"""
+    if not validate_input_text(text, alphabet):
+        raise ValueError("Ошибка: Введены недопустимые символы для кодирования.")
     encoded_text = ''.join(codes[char] for char in text if char in codes)
     return encoded_text
 
-# Декодирование текста на основе словаря кодов
 def decode_text(encoded_text, decode_codes):
+    """Декодирование текста на основе словаря кодов"""
+    if not validate_binary_input(encoded_text):
+        raise ValueError("Ошибка: Ввод должен содержать только двоичные символы (0 и 1) для декодирования.")
+
     decoded_text = ''
     current_code = ''
     for bit in encoded_text:
@@ -168,27 +172,27 @@ def decode_text(encoded_text, decode_codes):
             current_code = ''
     return decoded_text
 
-# Запись текста в файл
 def write_output_file(output_file, text):
+    """Запись текста в файл"""
     with open(output_file, 'w') as f_output:
         f_output.write(text)
 
-# Вычисление средней длины кодового слова
 def calculate_average_length(l, probabilities):
+    """Вычисление средней длины кодового слова"""
     average_length = sum(l[i] * probabilities[i] for i in range(len(probabilities)))
     return average_length
 
-# Вычисление энтропии H
 def calculate_entropy(probabilities):
+    """Вычисление энтропии H"""
     entropy = -sum(p * math.log2(p) for p in probabilities if p > 0)
     return entropy
 
-# Вычисление избыточности
 def calculate_redundancy(average_length, entropy):
+    """Вычисление избыточности"""
     return average_length - entropy
 
-# Вычисление неравенства Крафта
 def calculate_kraft_inequality(l):
+    """Вычисление неравенства Крафта"""
     kraft_sum = sum(2 ** (-li) for li in l)
     return kraft_sum
 
@@ -197,6 +201,7 @@ def process_mode(mode):
     global global_choice
     probability_file, code_words_file = choose_probability_file()
 
+    # Получение алфавита и вероятностей
     alphabet, probabilities = read_data(alphabet_file, probability_file)
     # Получение кодировки символов и значений l
     codes, l = encode_symbols(alphabet, probabilities)
@@ -226,27 +231,33 @@ def process_mode(mode):
     if mode == 1:  # Кодирование
         input_file = 'input.txt'
         text = read_input_file(input_file)
-        encoded_text = encode_text(text, codes)
-        write_output_file('output.txt', encoded_text)
-
-        # Обновляем метку с закодированным текстом
-        encoded_text_label.config(text=f"Закодированный текст: {encoded_text}")
-        print(f"Кодировка символов записана в файл {code_words_file}")
-        print(f"Закодированный текст записан в файл output.txt")
-
+        try:
+            encoded_text = encode_text(text, codes, alphabet)  # Передача алфавита
+            write_output_file('output.txt', encoded_text)
+            encoded_text_label.config(text=f"Закодированный текст: {encoded_text}")
+        except ValueError as e:
+            encoded_text_label.config(text=str(e))
+            print(str(e))
 
     elif mode == 2:  # Декодирование
-
         input_file = 'input.txt'
         encoded_text = read_input_file(input_file)
-        decode_codes = decode_symbols(codes)
-        decoded_text = decode_text(encoded_text, decode_codes)
-        write_output_file('output.txt', decoded_text)
+        try:
+            decode_codes = decode_symbols(codes)
+            decoded_text = decode_text(encoded_text, decode_codes)
+            write_output_file('output.txt', decoded_text)
+            decoded_text_label.config(text=f"Декодированный текст: {decoded_text}")
+        except ValueError as e:
+            decoded_text_label.config(text=str(e))
+            print(str(e))
 
-        # Обновляем метку с декодированным текстом
-        decoded_text_label.config(text=f"Декодированный текст: {decoded_text}")
-        print(f"Кодировка символов записана в файл {code_words_file}")
-        print(f"Декодированный текст записан в файл output.txt")
+def validate_input_text(text, alphabet):
+    """Проверка, что все символы в тексте соответствуют алфавиту."""
+    return all(char in alphabet for char in text)
+
+def validate_binary_input(text):
+    """Проверка, что ввод состоит только из двоичных символов (0 и 1)."""
+    return all(bit in '01' for bit in text)
 
 def clickedC():
     global global_choice
@@ -266,10 +277,10 @@ def clickedDC():
 if __name__ == "__main__":
     window = Tk()
     window.title('Кодирование/декодирование')
-    window.geometry('800x550')
+    window.geometry('1000x760')
 
     # Текстовое поле для ввода текста
-    input_text_area = Text(window, height=10, width=70)
+    input_text_area = Text(window, height=10, width=80)
     input_text_area.grid(column=0, row=0, columnspan=3)
 
     # Кнопка для сохранения текста в input.txt
@@ -286,8 +297,8 @@ if __name__ == "__main__":
     btn_decode.grid(column=2, row=2)
 
     # Кнопки выбора вероятности
-    btn_probability1 = Button(window, text="Распределение P1", command=lambda: set_choice(1))
-    btn_probability2 = Button(window, text="Распределение P1", command=lambda: set_choice(2))
+    btn_probability1 = Button(window, text="Первая вероятность", command=lambda: set_choice(1))
+    btn_probability2 = Button(window, text="Вторая вероятность", command=lambda: set_choice(2))
     btn_probability3 = Button(window, text="Равномерное распределение", command=lambda: set_choice(3))
 
     # Изначально скрываем кнопки
@@ -320,11 +331,12 @@ if __name__ == "__main__":
     codes_label.grid(column=0, row=11, columnspan=3)
 
     # Метка для отображения закодированного текста
-    encoded_text_label = Label(window, text="")
+    encoded_text_label = Label(window, text="", wraplength=600)  # Задаем ширину для переноса строк
     encoded_text_label.grid(column=0, row=12, columnspan=3)
 
     # Метка для отображения декодированного текста
-    decoded_text_label = Label(window, text="")
+    decoded_text_label = Label(window, text="", wraplength=600)  # Задаем ширину для переноса строк
     decoded_text_label.grid(column=0, row=13, columnspan=3)
+
 
     window.mainloop()
